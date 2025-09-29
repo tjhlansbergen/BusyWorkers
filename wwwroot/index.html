@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Robot Simulation</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1e1e1e; /* dark background */
+      color: #d4d4d4;           /* soft light gray text */
+      font-family: "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+    }
+
+    h1 {
+      margin: 20px 0;
+      font-weight: 500;
+      color: #dcdcdc;
+    }
+
+    #canvas {
+      background-color: #252526;  /* dark canvas */
+      border: 1px solid #3c3c3c;  /* subtle border */
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <h1>🤖 Simulation</h1>
+  <canvas id="canvas" width="400" height="400"></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    function render(commands) {
+      for (let cmd of commands) {
+        switch (cmd.type) {
+          case "clear":
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            break;
+          case "circle":
+            ctx.beginPath();
+            ctx.arc(cmd.x, cmd.y, cmd.radius, 0, Math.PI * 2);
+            ctx.fillStyle = cmd.color || "white";
+            ctx.fill();
+            break;
+          case "line":
+            ctx.beginPath();
+            ctx.moveTo(cmd.x1, cmd.y1);
+            ctx.lineTo(cmd.x2, cmd.y2);
+            ctx.strokeStyle = cmd.color || "white";
+            ctx.lineWidth = cmd.width || 1;
+            ctx.stroke();
+            break;
+	  case "rect":
+	    if (cmd.fill) {
+		  ctx.fillStyle = cmd.color || "white";
+		  ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+	    } else {
+		  ctx.strokeStyle = cmd.color || "white";
+		  ctx.lineWidth = cmd.lineWidth || 1;
+		  ctx.strokeRect(cmd.x, cmd.y, cmd.width, cmd.height);
+	    }
+	    break;
+	}
+      }
+    }
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl("/drawHub")
+      .build();
+
+    connection.on("DrawCommands", json => {
+      const data = JSON.parse(json);
+      render(data.commands);
+    });
+
+    connection.start()
+      .then(() => console.log("Connected to SignalR"))
+      .catch(err => console.error(err.toString()));
+  </script>
+</body>
+</html>
+
